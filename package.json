@@ -1,0 +1,35 @@
+{
+  "name": "@timelaps/trie",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "node test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/timelaps/trie.git"
+  },
+  "keywords": [],
+  "author": "Michael McLaughlin <michael.j.mclaughlin20@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/timelaps/trie/issues"
+  },
+  "homepage": "https://github.com/timelaps/trie#readme",
+  "devDependencies": {
+    "@timelaps/batterie": "^1.0.73"
+  },
+  "dependencies": {
+    "@timelaps/array": "^1.0.11",
+    "@timelaps/classy": "^1.0.17",
+    "@timelaps/fn": "^1.0.11",
+    "@timelaps/hacks": "^1.0.5",
+    "@timelaps/is": "^1.0.13",
+    "@timelaps/n": "^1.0.26",
+    "@timelaps/number": "^1.0.2",
+    "@timelaps/object": "^1.0.20",
+    "@timelaps/string": "^1.0.2",
+    "@timelaps/to": "^1.0.7"
+  }
+}

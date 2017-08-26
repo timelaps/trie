@@ -1,9 +1,7 @@
 module.exports = TrieMaker;
 TrieMaker.constructor = Trie;
-var u, repeat = require('@timelaps/string/base/repeat');
+var u;
 var MAX = 32;
-var maxBinaryBlockLength = MAX.toString(2).length - 1;
-var zerostring = repeat('0', maxBinaryBlockLength);
 var fromTo = require('@timelaps/n/from/to');
 var isUndefined = require('@timelaps/is/undefined');
 var assign = require('@timelaps/object/assign');
@@ -12,104 +10,74 @@ var reduce = require('@timelaps/array/reduce');
 var isArray = require('@timelaps/is/array');
 var isNumber = require('@timelaps/is/number');
 var clamp = require('@timelaps/number/clamp');
+var isString = require('@timelaps/is/string');
+Trie.prototype = {
+    fromTo: function (fn, memo, start, end, blockSize) {
+        var length = this.length;
+        return deepRead(fromTo, this.value, fn, memo, start || 0, end || length, length, this.depth);
+    },
+    reduce: function (fn, memo) {
+        return this.fromTo(fn, memo);
+    },
+    get: function (index) {
+        return index < this.length ? get(this, this.toIndexPath(index)) : u;
+    },
+    ofMutable: function (fn, memo) {
+        var mutated, trie = this,
+            readable = trie.value;
+        return fn(trie, readable, mutable) || trie;
+
+        function mutable() {
+            // only make it once
+            return mutated || (mutated = readable.slice(0));
+        }
+    },
+    set: function (index, item) {
+        var indexPath = this.toIndexPath(index);
+        var method = index < this.capacity() ? setWithinCapacity : setOutsideOfCapacity;
+        return method(this, indexPath, item);
+    },
+    toIndexPath: function (index) {
+        return toIndexPath(index, this.depth);
+    },
+    capacity: function () {
+        return computeCapacity(this.depth);
+    },
+    subtrie: function () {
+        return new Trie({
+            length: 0,
+            depth: this.depth - 1,
+            value: appropriatelySized()
+        });
+    },
+    bunch: function (options) {
+        var list = appropriatelySized();
+        list[0] = this;
+        return new Trie({
+            length: this.length,
+            depth: this.depth + 1,
+            value: list
+        });
+    }
+};
 
 function TrieMaker(original_) {
     var original = original_ || [];
     var length = original.length;
     var depth = computeDepth(length);
-    return new Trie({
-        depth: depth,
-        length: length
-    }, churn(original, 0, length, length, depth));
+    return churn(original, 0, length, length, depth);
 }
 
-function fullBinary(binary) {
-    var filled = binary;
-    var length = binary.length;
-    var needs = Math.ceil(length / maxBinaryBlockLength) * maxBinaryBlockLength;
-    var delta = needs - length;
-    return delta ? (zerostring.slice(0, delta) + binary) : binary;
-}
-
-function binaryToIndex(binary) {
-    return parseInt(binary, 2);
+function base32ToIndex(binary) {
+    return parseInt(binary, MAX);
 }
 
 function nextChunk(binary) {
     return binary.slice(1);
 }
 
-function toBinary(number) {
-    return parseInt(number).toString(2);
-}
-
-function isGreaterThanMax(binary) {
-    return binary.length > maxBinaryBlockLength;
-}
-
-function getAlongPath(path, structure) {
-    var item = structure[binaryToIndex(path[0])];
-    // we can do this because
-    return path[1] ? getAlongPath(nextChunk(path), item) : item;
-}
-
-function setInCurrentStructure(structure_, path, item_, mutable) {
-    var next, updated, mutated, item, structure = structure_;
-    var first = path[0];
-    var index = binaryToIndex(first);
-    var current = structure[index];
-    if (path[1]) {
-        next = nextChunk(path);
-        if (current) {
-            mutated = setInCurrentStructure(current, next, item_);
-            if (mutated !== current) {
-                structure = structure.slice(0);
-                structure[index] = mutated;
-            }
-        } else {
-            structure = mutable ? structure : structure.slice(0);
-            structure[index] = setInCurrentStructure(appropriatelySized(), next, item_, true);
-        }
-        return structure;
-    } else {
-        updated = structure;
-        item = item_(current);
-        if (item !== current) {
-            updated = mutable ? structure : structure.slice(0);
-            updated[index] = item;
-        }
-        return updated;
-    }
-}
-
-function setAlongPath(trie, index, item) {
-    var newDepth, mutated, structure = trie.value,
-        depth = trie.depth,
-        length = trie.length,
-        maxWithoutBunching = Math.pow(MAX, depth + 1);
-    if (maxWithoutBunching <= index) {
-        // bunch me please
-        newDepth = computeDepth(index);
-        maxWithoutBunching = newDepth - depth;
-        mutated = structure;
-        while (maxWithoutBunching > 0) {
-            maxWithoutBunching -= 1;
-            structure = mutated;
-            mutated = appropriatelySized();
-            mutated[0] = structure;
-        }
-        depth = newDepth;
-        mutated = setInCurrentStructure(mutated, toIndexPath(index, depth), item, true);
-    } else {
-        mutated = setInCurrentStructure(structure, toIndexPath(index, depth), item);
-    }
-    if (structure !== mutated) {
-        return new Trie({
-            depth: depth,
-            length: (length > index ? length : index + 1)
-        }, mutated);
-    }
-    return this;
+function toBase32(number) {
+    return parseInt(number).toString(MAX);
 }
 
 function keepChurning(original, inclusiveMin, exclusiveMax, length, depth) {
@@ -126,59 +94,112 @@ function slice(original, inclusiveMin, exclusiveMax) {
 }
 
 function churn(original, inclusiveMin, exclusiveMax, length, depth) {
+    var next;
     if (exclusiveMax - inclusiveMin > MAX) {
-        return keepChurning(original, inclusiveMin, exclusiveMax, length, depth);
+        next = keepChurning(original, inclusiveMin, exclusiveMax, length, depth);
     } else {
-        return slice(original, inclusiveMin, exclusiveMax);
+        next = slice(original, inclusiveMin, exclusiveMax);
     }
+    return new Trie({
+        length: exclusiveMax - inclusiveMin,
+        depth: depth,
+        value: next
+    });
 }
 
-function keepDeepChurning(structure, fn, memo, inclusiveMin, exclusiveMax, length, depth, blockSize) {
+function keepDeepReading(fromTo, structure, fn, memo, inclusiveMin, exclusiveMax, length, depth) {
+    var blockSize = Math.pow(MAX, depth);
     return fromTo(function (index, memo) {
-        return deepChurn(structure, fn, memo, index, index + blockSize, length, depth - 1, blockSize);
-    }, memo, inclusiveMin, exclusiveMax - 1, blockSize);
+        var idx = (index / blockSize) % MAX;
+        var trie = structure[idx];
+        if (!trie) {
+            return memo;
+        }
+        return deepRead(fromTo, trie.value, fn, memo, index, index + blockSize, length, depth - 1);
+    }, memo, inclusiveMin, clamp(exclusiveMax, 0, length) - 1, blockSize);
 }
 
-function deepChurn(structure, fn, memo, inclusiveMin, exclusiveMax, length, depth, blockSize) {
-    if (exclusiveMax - inclusiveMin > MAX) {
-        return keepDeepChurning(structure, fn, memo, inclusiveMin, exclusiveMax, length, depth, blockSize);
+function largerThanBlock(number) {
+    return number > MAX;
+}
+
+function modBlock(number) {
+    return number % MAX;
+}
+
+function deepRead(fromTo, structure, fn, memo, inclusiveMin, exclusiveMax, length, depth) {
+    if (largerThanBlock(exclusiveMax - inclusiveMin)) {
+        return keepDeepReading(fromTo, structure, fn, memo, inclusiveMin, exclusiveMax, length, depth);
     } else {
         return fromTo(function (index, memo) {
-            return fn(memo, structure[index], index, structure);
-        }, memo, inclusiveMin, exclusiveMax - 1, 1);
+            return fn(memo, structure[index], inclusiveMin + index, structure);
+        }, memo, modBlock(inclusiveMin), modBlock(exclusiveMax - 1), 1);
     }
 }
-Trie.prototype = {
-    fromTo: function (fn, memo, start, end, blockSize) {
-        var length = this.length;
-        return deepChurn(this.value, fn, memo, start || 0, end || length, length, this.depth, blockSize || 1);
-    },
-    fromToEnd: function () {},
-    get: function (index) {
-        return index < this.length ? getAlongPath(toIndexPath(index, this.depth), this.value) : undefined;
-    },
-    ofMutable: function (fn, memo) {
-        var result, trie = this;
-        trie.mutating += 1;
-        result = fn(trie, trie.value);
-        trie.mutating -= 1;
-        return result;
-    },
-    set: function (index, item) {
-        // // modify the trie
-        return this.ofMutable(function (trie) {
-            return setAlongPath(trie, index, function () {
-                return item;
-            });
-        });
+
+function setOutsideOfCapacity(trie, indexPath, value) {
+    var index = base32ToIndex(indexPath);
+    var length = index + 1;
+    var currentDepth = trie.depth;
+    var neededDepth = computeDepth(length);
+    var result = trie;
+    while (currentDepth < neededDepth) {
+        result.length = result.capacity();
+        result = result.bunch();
+        currentDepth = result.depth;
     }
-};
+    result.length = length;
+    return setWithinCapacity(result, indexPath, value);
+}
+
+function setWithinCapacity(trie, indexPath, value) {
+    // modify the trie
+    var next, first = indexPath[0],
+        index = base32ToIndex(first);
+    return trie.ofMutable(trie.depth ? function (trie, readable, mutable) {
+        var result = readable;
+        var subTrie = readable[index];
+        var next = nextChunk(indexPath);
+        var sub = subTrie || trie.subtrie();
+        var afterSet = setWithinCapacity(sub, next, value);
+        if (subTrie !== afterSet) {
+            result = mutable();
+            result[index] = afterSet;
+            return new Trie({
+                length: trie.length,
+                depth: trie.depth,
+                value: result
+            });
+        }
+    } : function (trie, readable, mutable) {
+        var length, result;
+        if (readable[index] !== value) {
+            result = mutable();
+            result[index] = value;
+            length = clamp(trie.length, index + 1);
+            return new Trie({
+                length: length,
+                depth: trie.depth,
+                value: result
+            });
+        }
+    });
+}
+
+function get(trie, indexPath) {
+    var next, first = indexPath[0],
+        sub = trie.value[base32ToIndex(first)];
+    return trie.depth ? get(sub, nextChunk(indexPath)) : sub;
+}
 
 function Trie(options, structure) {
     var trie = this;
     assign(trie, options);
     trie.mutating = 0;
-    trie.value = structure;
+}
+
+function computeCapacity(depth) {
+    return Math.pow(MAX, depth + 1);
 }
 
 function computeDepth(length) {
@@ -197,25 +218,13 @@ function iterate(trie, level, fn, memo, index, depth) {
 }
 
 function binaryToPathIndex(index, depth) {
-    var binary = fullBinary(index);
-    var length = binary.length / maxBinaryBlockLength;
-    var fillUntil = depth - length + 1;
+    var base = toBase32(index);
+    var fillUntil = depth - base.length;
     return fromTo(function (i, memo) {
-        var start;
-        if (fillUntil > i) {
-            memo[i] = zerostring;
-        } else {
-            start = (i - fillUntil) * maxBinaryBlockLength;
-            memo[i] = binary.slice(start, start + maxBinaryBlockLength);
-        }
-        return memo;
-    }, appropriatelySized(depth + 1), 0, depth, 1);
-}
-
-function numberToIndexPath(index, depth) {
-    return binaryToPathIndex(toBinary(index), depth);
+        return 0 + memo;
+    }, base, 0, fillUntil, 1);
 }
 
 function toIndexPath(index, depth) {
-    return isArray(index) ? index : isNumber(index) ? numberToIndexPath(index, depth) : binaryToPathIndex(index, depth);
+    return isString(index) ? index : (isArray(index) ? index : binaryToPathIndex(index, depth));
 }

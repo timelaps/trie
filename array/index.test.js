@@ -1,6 +1,7 @@
 var b = require('@timelaps/batterie');
 var Trie = require('.');
 var now = require('@timelaps/polyfill/performance/now');
+var reduce = require('@timelaps/array/reduce');
 b.describe('Trie', function () {
     b.expect(Trie).toBeFunction();
     b.it('creates instances of Leafs', function (t) {
@@ -61,6 +62,20 @@ b.describe('Trie', function () {
                     t.expect(value).toBe(array[index]);
                 });
             }, 9);
+            b.it('will iterate through large structures', function (t) {
+                var array = new Array(1000000);
+                for (var i = 0; i < array.length; i++) {
+                    array[i] = i;
+                }
+                var trie = Trie(array);
+                var trieSum = trie.reduce(sum, 0);
+                var arraySum = array.reduce(sum, 0);
+                t.expect(trie.reduce(sum, 0)).toBe(array.reduce(sum, 0));
+
+                function sum(memo, item) {
+                    return memo + item;
+                }
+            });
         });
     });
 });

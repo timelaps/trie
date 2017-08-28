@@ -160,8 +160,7 @@ function fillChildren(trie, array, start_, end_, indexPath) {
         mutable = trie.mutable();
     if (value) {
         end = clamp(end, 0, value.capacity - value.length);
-        start = fillToCapacity(value, array, start, end, next);
-        mutable.value[index] = value.mutable();
+        start = fillToCapacityAndReplace(mutable, index, value, array, start, end, next);
         baseline += 1;
     }
     if (start >= absoluteMax) {
@@ -179,17 +178,28 @@ function fillChildren(trie, array, start_, end_, indexPath) {
     return added;
 }
 
+function fillToCapacityAndReplace(parent, index, trie, array, start, end, indexPath) {
+    var added;
+    parent.value[index] = trie.ofMutable(function (trie) {
+        added = fillToCapacity(trie, array, start, end, indexPath);
+    });
+    return added;
+}
+
 function fillToCapacity(trie, array, start, end, indexPath) {
     var method = trie.depth ? fillChildren : fillShallow;
     return method(trie, array, start, end, indexPath);
 }
 
 function fillShallow(trie, array, start, end, begin) {
+    var added = end - start;
+    if (!added) {
+        return added;
+    }
     var mutable = trie.mutable(),
         offset = base32ToIndex(begin || 0),
         value = mutable.value,
-        length = mutable.length,
-        added = end - start;
+        length = mutable.length;
     if (!added) {
         return added;
     }

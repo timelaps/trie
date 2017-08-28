@@ -138,15 +138,17 @@ b.describe('Trie', function () {
                 var array = make(nextIndex);
                 var trie = Trie(array);
                 var set = make(thirtyTwoFive).slice(nextIndex);
+                // debugger;
                 var moreTrie = trie.concat(set);
                 t.expect(moreTrie.get(thirtyTwoFive - 1)).toBe(thirtyTwoFive - 1);
                 t.expect(moreTrie.length).toBe(thirtyTwoFive);
                 t.expect(trie.length).toBe(nextIndex);
+                // console.log(trie);
             }, 3);
         });
     });
 });
-benchmarks();
+// benchmarks();
 
 function pushTo(trie, limit) {
     var list = trie;

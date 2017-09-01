@@ -1,6 +1,6 @@
 {
   "name": "@timelaps/trie",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "persistent trie structures",
   "main": "index.js",
   "scripts": {

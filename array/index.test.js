@@ -1,6 +1,6 @@
 var b = require('@timelaps/batterie');
 var Trie = require('.');
-var now = require('@timelaps/polyfill/performance/now');
+var now = require('@timelaps/polyfill/performance/now')(global);
 var reduce = require('@timelaps/array/reduce');
 b.describe('Trie', function () {
     b.expect(Trie).toBeFunction();
@@ -126,11 +126,13 @@ b.describe('Trie', function () {
         });
         b.describe('concat', function () {
             b.it('can add many elements to the end of a trie', function (t) {
-                var sparseTrie = Trie(make(10));
-                var moreTrie = sparseTrie.concat([10, 11, 12, 13, 14]);
-                t.expect(moreTrie).notToBe(sparseTrie);
+                var trie = Trie(make(10));
+                var moreTrie = trie.concat([
+                    10, 11, 12, 13, 14
+                ]);
+                t.expect(moreTrie).notToBe(trie);
                 t.expect(moreTrie.get(11)).toBe(11);
-                t.expect(sparseTrie.get(11)).toBeUndefined();
+                t.expect(trie.get(11)).toBeUndefined();
             }, 3);
             b.it('can add elements to a sparce and deep trie', function (t) {
                 var nextIndex = 32 * 4.5;
@@ -138,17 +140,15 @@ b.describe('Trie', function () {
                 var array = make(nextIndex);
                 var trie = Trie(array);
                 var set = make(thirtyTwoFive).slice(nextIndex);
-                // debugger;
                 var moreTrie = trie.concat(set);
                 t.expect(moreTrie.get(thirtyTwoFive - 1)).toBe(thirtyTwoFive - 1);
                 t.expect(moreTrie.length).toBe(thirtyTwoFive);
                 t.expect(trie.length).toBe(nextIndex);
-                // console.log(trie);
             }, 3);
         });
     });
 });
-// benchmarks();
+benchmarks();
 
 function pushTo(trie, limit) {
     var list = trie;
@@ -171,9 +171,9 @@ function benchmarks() {
 }
 
 function benchmark(fn) {
-    var start = process.uptime();
+    var start = now();
     fn();
-    b.log(process.uptime() - start);
+    b.log(now() - start);
 }
 
 function capacityByDepth(depth) {

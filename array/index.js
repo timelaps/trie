@@ -21,6 +21,7 @@ var computeCapacity = cacheable(computesCapacity);
 var computeDepth = cacheable(computesDepth);
 var computeBlockSize = cacheable(computesBlockSize);
 var base32ToIndex = cacheable(base32ToIndexer);
+var repeat0s = cacheable(repeat0sMaker);
 Trie.prototype = {
     constructor: Trie,
     fromTo: function (fn, memo, start, end) {
@@ -141,6 +142,7 @@ function concatSome(trie, some) {
     } else if (length === 1) {
         return concatOne(trie, some[0]);
     } else {
+        // unchanged. nothing to add
         return trie;
     }
 }
@@ -426,9 +428,13 @@ function iterate(trie, level, fn, memo, index, depth) {
 function binaryToPathIndex(index, depth) {
     var base = toBase32(index);
     var fillUntil = depth - base.length;
+    return repeat0s(fillUntil) + base;
+}
+
+function repeat0sMaker(howmany) {
     return fromTo(function (i, memo) {
-        return 0 + memo;
-    }, base, 0, fillUntil, 1);
+        return memo + '0';
+    }, '', 0, howmany, 1);
 }
 
 function toIndexPath(index, depth) {

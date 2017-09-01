@@ -24,13 +24,14 @@
   "dependencies": {
     "@timelaps/array": "^1.0.12",
     "@timelaps/classy": "^1.0.17",
-    "@timelaps/fn": "^1.0.11",
+    "@timelaps/fn": "^1.0.12",
     "@timelaps/hacks": "^1.0.5",
     "@timelaps/is": "^1.0.14",
     "@timelaps/n": "^1.0.26",
     "@timelaps/number": "^1.0.3",
     "@timelaps/object": "^1.0.20",
+    "@timelaps/polyfill": "^1.0.14",
     "@timelaps/string": "^1.0.2",
-    "@timelaps/to": "^1.0.8"
+    "@timelaps/to": "^1.0.9"
   }
 }

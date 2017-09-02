@@ -101,16 +101,15 @@ Trie.prototype = {
         return new Trie({
             depth: this.depth - 1,
             length: 0,
-            value: []
+            value: appropriatelySized()
         });
     },
-    bunch: function () {
-        var list = [];
-        var trie = this;
-        list[0] = trie;
+    bunch: function (options) {
+        var list = appropriatelySized();
+        list[0] = this;
         return new Trie({
-            depth: trie.depth + 1,
-            length: trie.length,
+            depth: this.depth + 1,
+            length: this.length,
             value: list
         });
     },
@@ -291,7 +290,7 @@ function keepChurning(original, inclusiveMin, exclusiveMax, length, depth, offse
         var idx = ((index - offset) / block) % MAX;
         memo[idx] = churn(original, index, clamp(index + block, 0, length), length, depth - 1, offset);
         return memo;
-    }, [], inclusiveMin, clamp(exclusiveMax, 0, length) - 1, block);
+    }, appropriatelySized(), inclusiveMin, clamp(exclusiveMax, 0, length) - 1, block);
 }
 
 function slice(original, inclusiveMin, exclusiveMax) {
@@ -401,7 +400,7 @@ function expandList(list, from, to) {
     return fromTo(function (index, memo) {
         memo[index - from] = list[index];
         return memo;
-    }, [], from, to - 1, 1);
+    }, appropriatelySized(), from, to - 1, 1);
 }
 
 function computesCapacity(depth) {
@@ -414,6 +413,10 @@ function computesDepth(length) {
 
 function computesBlockSize(depth) {
     return Math.pow(MAX, depth);
+}
+
+function appropriatelySized(length) {
+    return [];
 }
 
 function iterate(trie, level, fn, memo, index, depth) {

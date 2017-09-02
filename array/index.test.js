@@ -13,10 +13,10 @@ b.describe('Trie', function () {
             var trie = Trie();
             t.expect(trie.value).toBeArray();
         });
-        b.it('the value array always have a length that matches the exposed MAX', function (t) {
-            var trie = Trie([2, 3, 4]);
-            t.expect(trie.value.length).toBe(Trie.MAX);
-        });
+        // b.it('the value array always have a length that matches the exposed MAX', function (t) {
+        //     var trie = Trie([2, 3, 4]);
+        //     t.expect(trie.value.length).toBe(Trie.MAX);
+        // });
         b.it('will have the correct sized elements even in deep structures', function (t) {
             var trie = Trie(make(100));
             var sub = trie.access(3);
@@ -160,8 +160,15 @@ function pushTo(trie, limit) {
 
 function benchmarks() {
     var list = Trie();
+    var onemillion = 1000000;
     benchmark(function () {
-        list = pushTo(list, 1000000);
+        list = pushTo(list, onemillion);
+    });
+    benchmark(function () {
+        var array = [];
+        for (var i = 0; i < onemillion; i++) {
+            array.push(i);
+        }
     });
     benchmark(function () {
         b.log(list.reduce(function (memo, next) {
@@ -173,7 +180,7 @@ function benchmarks() {
 function benchmark(fn) {
     var start = now();
     fn();
-    b.log(now() - start);
+    b.log((now() - start) + 'ms');
 }
 
 function capacityByDepth(depth) {

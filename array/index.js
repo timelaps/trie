@@ -32,10 +32,11 @@ Trie.prototype = {
         return this.fromTo(bindTo(fn, this), memo);
     },
     copy: function () {
+        var trie = this;
         return new Trie({
-            depth: this.depth,
-            length: this.length,
-            value: this.value.slice(0)
+            depth: trie.depth,
+            length: trie.length,
+            value: trie.value.slice(0)
         });
     },
     forEach: bindFirst(function (trie, fn) {
@@ -100,15 +101,16 @@ Trie.prototype = {
         return new Trie({
             depth: this.depth - 1,
             length: 0,
-            value: appropriatelySized()
+            value: []
         });
     },
-    bunch: function (options) {
-        var list = appropriatelySized();
-        list[0] = this;
+    bunch: function () {
+        var list = [];
+        var trie = this;
+        list[0] = trie;
         return new Trie({
-            depth: this.depth + 1,
-            length: this.length,
+            depth: trie.depth + 1,
+            length: trie.length,
             value: list
         });
     },
@@ -289,7 +291,7 @@ function keepChurning(original, inclusiveMin, exclusiveMax, length, depth, offse
         var idx = ((index - offset) / block) % MAX;
         memo[idx] = churn(original, index, clamp(index + block, 0, length), length, depth - 1, offset);
         return memo;
-    }, appropriatelySized(), inclusiveMin, clamp(exclusiveMax, 0, length) - 1, block);
+    }, [], inclusiveMin, clamp(exclusiveMax, 0, length) - 1, block);
 }
 
 function slice(original, inclusiveMin, exclusiveMax) {
@@ -359,7 +361,7 @@ function setWithinCapacity(trie, indexPath, value) {
         var result = trie,
             subTrie = trie.value[index],
             sub = subTrie || trie.subtrie(),
-            length = sub.length || computeBlockSize(sub.depth) * index,
+            length = sub.length || (computeBlockSize(sub.depth) * index),
             afterSet = setWithinCapacity(sub, next, value);
         if (subTrie !== afterSet) {
             result = trie.mutable();
@@ -399,7 +401,7 @@ function expandList(list, from, to) {
     return fromTo(function (index, memo) {
         memo[index - from] = list[index];
         return memo;
-    }, appropriatelySized(), from, to - 1, 1);
+    }, [], from, to - 1, 1);
 }
 
 function computesCapacity(depth) {
@@ -412,10 +414,6 @@ function computesDepth(length) {
 
 function computesBlockSize(depth) {
     return Math.pow(MAX, depth);
-}
-
-function appropriatelySized(length) {
-    return new Array(length || MAX);
 }
 
 function iterate(trie, level, fn, memo, index, depth) {
